@@ -4,6 +4,7 @@ import sqlite3
 
 
 app = flask.Flask(__name__)
+######################
 # app.config.from_envvar('APP_CONFIG')
 # db_name: data
 # table1: posts
@@ -27,7 +28,7 @@ app = flask.Flask(__name__)
 #	password
 #	email
 #	age
-
+######################
 
 # add functions to initialize db, and close db connection and to query from db
 def init_db():
@@ -63,17 +64,20 @@ def get_posts():
 	param_values = []
 
 	# enter code for all params such as query+= 'n=? AND' and param_values.append(n)
-	# community = __all__ means all communities
+	# community = $_all_$ means all communities
 	
 	#results = query_db(query, param_values)
 	#return jsonify(results)
-	return "Under Development"	
+	return "<h1>Under Development</h1>"	
 
 
 @app.route('/api/v1/posts/create', methods=['POST'])
 def create_post():
 	params = request.data
 	# enter code to add post to database and refresh home page
+	
+	# return "<h2>Post already exists</h2>, 409"
+	# return "<h2>Post Created Successfully</h2>", 201
 	pass
 
 
