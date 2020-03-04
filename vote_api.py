@@ -1,7 +1,6 @@
 import flask
 from flask import request, jsonify, g, current_app
 import sqlite3
-
 #config
 DATABASE = 'data.db'
 DEBUG = True
@@ -32,7 +31,6 @@ app.config.from_object(__name__)
 #	name
 ######################
 
-
 def make_dicts(cursor, row):
 	return dict((cursor.description[idx][0], value) for idx, value in enumerate(row))
 
@@ -45,6 +43,8 @@ def get_db():
 			)
 		g.db.row_factory = make_dicts
 	return g.db
+
+
 
 def query_db(query, args=(), one=False, commit=False):
 	# one=True means return single record
@@ -88,7 +88,6 @@ def init_db():
 			db.cursor().executescript(f.read())
 		db.commit()
 
-
 @app.teardown_appcontext
 def close_db(e=None):
 	db = g.pop('db', None)
@@ -100,46 +99,22 @@ def close_db(e=None):
 def home():
 	return "<h1>Welcome to CSUF Discussions</h1><p>This site is under development</p>"
 
-
 @app.errorhandler(404)
 def page_not_found(error):
 	return "<h1>404</h1><p>Resource not found</p>", 404
 
-
-@app.route('/api/posts/all', methods=['GET'])
-def get_posts_all():
-	all_posts = query_db(
-		'''SELECT * FROM posts;'''
-		)
-	return jsonify(all_posts), 200
-
-
-@app.route('/api/posts/create', methods=['POST'])
-def create_post():
-	params = request.get_json(force=True)
-
-	query1 = 'INSERT INTO votes (upvotes, downvotes) VALUES (?, ?)'
-	args1 = (0,0)
-
-	query2 = 'INSERT INTO posts (community_id, title, description, username, vote_id) VALUES (?,?,?,?,(SELECT MAX(vote_id) FROM votes))'
-	args2 = (2,params['title'],params['description'],params['username'])
-
-	post = insert_db([query1, query2], [args1, args2])
-	return "<h1>Post created</h1>, 201"
+@app.route('/api/posts/upvote',methods=['GET'])
+def submit_upvote():
+    params = request.args
+    post_id = params.get('post_id')
+    if not post_id:
+        return page_not_found(404)
+    query1= 'UPDATE votes SET upvotes=upvotes+1 WHERE vote_id=?'
+    args1=(post_id)
+    query_db(query, args, one=True, commit=True)
+    return render_template('submit_vote.html',post_id),200
 
 
-@app.route('/api/posts/delete', methods=['GET'])
-def delete_post():
-	# enter code to request a delete operation in database, hide visibility of post and refresh home page
-	params = request.args
-	post_id = params.get('post_id')
-	if not post_id:
-		return page_not_found(404)
-	query = 'DELETE FROM posts WHERE post_id=?'
-	#********* Delete row form votes table as well*****
-	args = (post_id)
-	query_db(query, args, one=True, commit=True)
-	return "<h1>Post Deleted</h1>, 200"
 
 def main():
 	app.run()
