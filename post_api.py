@@ -1,5 +1,5 @@
 import flask
-from flask import request, jsonify, g
+from flask import request, jsonify, g, current_app
 import sqlite3
 
 #config
@@ -8,51 +8,77 @@ DEBUG = True
 
 app = flask.Flask(__name__)
 app.config.from_object(__name__)
-# manual config variables
-# app.config['APP_CONFIG'] = 'api.cfg'
-# app.config['DEBUG'] = True
-# app.config['DATABASE'] = 'data.db'
 
 ######################
 # app.config.from_envvar('APP_CONFIG')
-# db_name: data
+# db_name: data.db
+
 # table1: posts
 #	post_id
-#	post_title
-# 	post_text
-#	post_summary
-#	date
-#	visibilty
+#	community_id
+#	title
+# 	description
+#	published
 #	username
+#	vote_id
 
 # table2: votes
-# cols: 
-# 	post_id
+# 	vote_id
 # 	upvotes
 #	downvotes
-#	awards
+
+# table3: community
+#	community_id
+#	name
 ######################
 
 
-# add functions to initialize db, and close db connection and to query from db
 def make_dicts(cursor, row):
 	return dict((cursor.description[idx][0], value) for idx, value in enumerate(row))
 
 
 def get_db():
-	db = getattr(g, '_database', None)
-	if db is None:
-		db = g._database = sqlite3.connect(app.config['DATABASE'])
-		db.row_factory = make_dicts
-	return db
+	if 'db' not in g:
+		g.db = sqlite3.connect(
+			current_app.config['DATABASE'], 
+			detect_types=sqlite3.PARSE_DECLTYPES
+			)
+		g.db.row_factory = make_dicts
+	return g.db
 
+def query_db(query, args=(), one=False, commit=False):
+	# one=True means return single record
+	# commit = True for post and delete query 
+	cur = get_db()
+	try:
+		if commit:
+			rv = cur.execute(query, args)
+			cur.commit()
+		else:
+			rv = cur.execute(query, args).fetchall()
+	except sqlite3.OperationalError as e:
+		print(e)
+	close_db()
+	if not commit:
+		return (rv[0] if rv else None) if one else rv
+	else:
+		return 200
 
-def query_db(query, args=(), one=False):
-	cur = get_db().execute(query, args)
-	rv = cur.fetchall()
-	cur.close()
-	return (rv[0] if rv else None) if one else rv
-
+def transaction_db(query, args):
+	cur = get_db()
+	if len(query) != len(args):
+		raise ValueError('arguments dont match queries')
+	try:
+		cur.execute('BEGIN')
+		for i in range(len(query)):
+			cur.execute(query[i], args[i])
+		conn.commit()
+	except sqlite3.OperationalError as e:
+		cur.execute(rollback)
+		print(e)
+	
+	close_db()
+	return 'Transaction Completed'
 
 @app.cli.command('init')
 def init_db():
@@ -64,11 +90,10 @@ def init_db():
 
 
 @app.teardown_appcontext
-def close_connection(exception):
-	db = getattr(g, '_database', None)
+def close_db(e=None):
+	db = g.pop('db', None)
 	if db is not None:
 		db.close()
-#
 
 
 @app.route('/', methods=['GET'])
@@ -81,49 +106,39 @@ def page_not_found(error):
 	return "<h1>404</h1><p>Resource not found</p>", 404
 
 
-"""
-@app.route('/api/posts/get', methods=['GET'])
-def get_posts():
-	params = request.args
-	n = params.get('n')
-	community = params.get('community')
-	post_id = params.get('post_id')
-	query = "SELECT * FROM data WHERE"
-	param_values = []
-
-	# enter code for all params such as query+= 'n=? AND' and param_values.append(n)
-	# community = $_all_$ means all communities
-	
-	#results = query_db(query, param_values)
-	#return jsonify(results)
-	return "<h1>Under Development</h1>"	
-"""
-
-
 @app.route('/api/posts/all', methods=['GET'])
 def get_posts_all():
 	all_posts = query_db(
 		'''SELECT * FROM posts;'''
-	)
+		)
 	return jsonify(all_posts), 200
 
 
 @app.route('/api/posts/create', methods=['POST'])
 def create_post():
 	params = request.get_json(force=True)
-	# enter code to add post to database
-	query =f"INSERT INTO posts (id, community, title, description, published, visibility, username, votes_id) VALUES ({2}, {'csuf'}, {params['title']}, {params['description']}, {params['published']}, {1}, {params['username']}, {10002}); INSERT INTO votes(votes_id, upvotes, downvotes) VALUES({10002}, {500}, {20});SELECT * FROM posts;"
-	post = query_db(query, (), None)
-	# return "<h2>Post already exists</h2>, 409"
-	# return "<h2>Post Created Successfully</h2>", 201
-	return f"<h3>Post Created</h3>{jsonify(post)}\n", 201
+	
+	query1 = 'INSERT INTO votes (upvotes, downvotes) VALUES (?, ?)'
+	args1 = (0,0)
+
+	query2 = 'INSERT INTO posts (community_id, title, description, username, vote_id) VALUES (?,?,?,?,(SELECT MAX(vote_id) FROM votes))'
+	args2 = (2,params['title'],params['description'],params['username'])	
+	
+	post = insert_db([query1, query2], [args1, args2])
+	return "<h1>Post created</h1>, 201"
 
 
 @app.route('/api/posts/delete', methods=['GET'])
 def delete_post():
 	# enter code to request a delete operation in database, hide visibility of post and refresh home page
-	pass
-
+	params = request.args
+	post_id = params.get('post_id')
+	if not post_id:
+		return page_not_found(404)
+	query = 'DELETE FROM posts WHERE post_id=?'
+	args = (post_id)
+	query_db(query, args, one=True, commit=True)
+	return "<h1>Post Deleted</h1>, 200"
 
 def main():
 	app.run()

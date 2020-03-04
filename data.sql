@@ -3,23 +3,44 @@
 PRAGMA foreign_keys=ON;
 BEGIN TRANSACTION;
 DROP TABLE IF EXISTS  data;
+
+CREATE TABLE votes (
+    vote_id INTEGER primary key,
+    upvotes INTEGER,
+    downvotes INTEGER
+);
+
+CREATE TABLE community (
+    community_id INTEGER primary key,
+    name VARCHAR
+);
+
 CREATE TABLE posts (
-    id INTEGER primary key,
-    community VARCHAR,
+    post_id INTEGER primary key,
+    community_id VARCHAR,
     title VARCHAR,
     description VARCHAR,
-    published INTEGER,
-    visibility INTEGER,
+    published TIMESTAMP DEFAULT (DATETIME('now', 'localtime')),
     username VARCHAR,
-    votes_id INTEGER,
-    UNIQUE(id)
+    vote_id INTEGER,
+    FOREIGN KEY (vote_id) REFERENCES votes (vote_id),
+    FOREIGN KEY (community_id) REFERENCES community (community_id)       
 );
-INSERT INTO posts(id, community, title, description, published, visibility, username, votes_id) VALUES(1, 'TEST_Sub', 'Demo post', 'A demo post description', 2020, 1, 'nobody', 10001);
-CREATE TABLE votes (
-    votes_id INTEGER primary key,
-    upvotes INTEGER,
-    downvotes INTEGER,
-    UNIQUE(votes_id)
-);
-INSERT INTO votes(votes_id, upvotes, downvotes) VALUES(10001, 100, 25);
+/*INSERT INTO posts(community, title, description, username) VALUES('TEST_Sub1', 'Demo post1', 'A demo post description1', DATETIME('now','localtime'), 'nobody');
+INSERT INTO posts(community, title, description, username) VALUES('TEST_Sub2', 'Demo post2', 'A demo post description2',CURRENT_TIMESTAMP, 'nobody');
+*/
+INSERT INTO votes(upvotes, downvotes) VALUES(100, 25);
+INSERT INTO community(community_id, name) VALUES(1, 'cs');
+INSERT INTO posts(community_id, title, description, username, vote_id) VALUES(1, 'Demo post1', 'A demo post description1','nobody',(SELECT MAX(vote_id) from votes));
+
+INSERT INTO votes(upvotes, downvotes) VALUES(99, 24);
+INSERT INTO community(community_id, name) VALUES(2, 'hi');
+INSERT INTO posts(community_id, title, description, username, vote_id) VALUES(2, 'Demo post2', 'A demo post description2','nobody',(SELECT MAX(vote_id) from votes));
+
+INSERT INTO votes(upvotes, downvotes) VALUES(98, 23);
+INSERT INTO posts(community_id, title, description, username, vote_id) VALUES(2, 'Demo post3', 'A demo post description3','nobody',(SELECT MAX(vote_id) from votes));
+
+INSERT INTO votes(upvotes, downvotes) VALUES(97, 22);
+INSERT INTO posts(community_id, title, description, username, vote_id) VALUES(1, 'Demo post4', 'A demo post description4','nobody',(SELECT MAX(vote_id) from votes));
+
 COMMIT;
