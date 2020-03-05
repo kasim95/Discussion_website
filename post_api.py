@@ -103,7 +103,7 @@ def home():
 
 @app.errorhandler(404)
 def page_not_found(error):
-	return "<h1>404</h1><p>Resource not found</p>", 404
+	return "<h1>404 in flask</h1><p>Resource not found</p>", 404
 
 
 @app.route('/api/posts/all', methods=['GET'])

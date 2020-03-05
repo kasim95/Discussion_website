@@ -103,7 +103,7 @@ def home():
 def page_not_found(error):
 	return "<h1>404</h1><p>Resource not found</p>", 404
 
-@app.route('/api/posts/upvote',methods=['GET'])
+@app.route('/api/votes/upvote',methods=['GET'])
 def submit_upvote():
     params = request.args
     post_id = params.get('post_id')
