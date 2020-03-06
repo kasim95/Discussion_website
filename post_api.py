@@ -6,7 +6,7 @@ import sqlite3
 # Tasks
 # todo: add error handling for create post (if post already exists)
 # todo: add error handling for delete post (if post does not exist)
-# todo: add resource_url to posts table in db
+# done: add resource_url to posts table in db
 # done: add filter function for post retrieval
 
 ######################
@@ -128,6 +128,10 @@ def transaction_db(query, args, return_=False):
         conn.execute('rollback')
         print('Transaction failed. Rolled back')
         print(e)
+        return False
+    except:
+        conn.execute('rollback')
+        print('Transaction failed with unknown error. Rolled back')
         return False
     close_db()
     return True if not return_ else rv
