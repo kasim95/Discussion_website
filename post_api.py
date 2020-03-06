@@ -5,7 +5,7 @@ import sqlite3
 ######################
 # Tasks
 # todo: add error handling for create post (if post already exists)
-# todo: add error handling for delete post (if post does not exist)
+# done: add error handling for delete post (if post does not exist)
 # done: add resource_url to posts table in db
 # done: add filter function for post retrieval
 
@@ -229,13 +229,19 @@ def delete_post():
     if not post_id:
         return page_not_found(404)
 
-    query1 = 'DELETE FROM votes WHERE vote_id=(SELECT vote_id FROM posts WHERE post_id=?)'
+    query1 = 'SELECT * FROM posts WHERE post_id=?'
     args1 = (post_id,)
 
-    query2 = 'DELETE FROM posts WHERE post_id=?'
+    if not query_db(query1, args1):
+        return "<h1>Post does not exist</h1>", 409
+
+    query2 = 'DELETE FROM votes WHERE vote_id=(SELECT vote_id FROM posts WHERE post_id=?)'
     args2 = (post_id,)
 
-    q = transaction_db([query1, query2], [args1, args2])
+    query3 = 'DELETE FROM posts WHERE post_id=?'
+    args3 = (post_id,)
+
+    q = transaction_db([query2, query3], [args2, args3])
     if not q:
         return page_not_found(404)
     return "<h1>Post Deleted</h1>", 200
