@@ -2,14 +2,18 @@ import flask
 from flask import request, jsonify, g, current_app
 import sqlite3
 
+######################
+# Tasks
 # todo: add error handling for create post (if post already exists)
 # todo: add error handling for delete post (if post does not exist)
-# todo: add url to posts table in db
-# todo: add filter function for post retrieval
+# todo: add resource_url to posts table in db
+# done: add filter function for post retrieval
 
+######################
 # Reference: https://alvinalexander.com/android/sqlite-autoincrement-insert-value-primary-key
 # Use SELECT last_insert_row_id() in SQL to get last autoincremented value
 
+######################
 # config variables
 DATABASE = 'data.db'
 DEBUG = True
@@ -17,8 +21,8 @@ DEBUG = True
 app = flask.Flask(__name__)
 app.config.from_object(__name__)
 
-
 ######################
+# Database
 # app.config.from_envvar('APP_CONFIG')
 # db_name: data.db
 
@@ -138,8 +142,44 @@ def get_posts_all():
 
 
 # function to retrieve posts with filters
-@app.route('/api/posts/filter')
+@app.route('/api/posts/filter', methods=['GET'])
 def get_posts_filter():
+    params = request.args
+    query = 'SELECT * FROM posts ' \
+             'INNER JOIN community ON posts.community_id=community.community_id ' \
+             'INNER JOIN votes ON posts.vote_id=votes.vote_id WHERE'
+    args = []
+
+    post_id = params.get('post_id')
+    if post_id:
+        query += ' post_id=? AND'
+        args.append(post_id)
+
+    username = params.get('username')
+    if username:
+        query += ' username=? AND'
+        args.append(username)
+
+    published = params.get('published')
+    if published:
+        query += ' published=? AND'
+        args.append(published)
+
+    title = params.get('title')
+    if title:
+        query += ' title=? AND'
+        args.append(title)
+
+    community_name = params.get('community_name')
+    if community_name:
+        query += ' name=? AND'
+        args.append(community_name)
+
+    query = query[:-4]
+    q = query_db(query, tuple(args))
+
+    if q:
+        return jsonify(q), 200
     return page_not_found(404)
 
 
