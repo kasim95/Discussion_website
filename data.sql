@@ -9,7 +9,7 @@ DROP TABLE IF EXISTS posts;
 
 CREATE TABLE community (
     community_id INTEGER PRIMARY KEY,
-    name VARCHAR NOT NULL
+    community_name VARCHAR NOT NULL
 );
 
 CREATE TABLE votes (
@@ -32,10 +32,10 @@ CREATE TABLE posts (
 );
 
 INSERT INTO votes(upvotes, downvotes) VALUES(100, 25);
-INSERT INTO community(community_id, name) VALUES(1, 'algebra');
+INSERT INTO community(community_id, community_name) VALUES(1, 'algebra');
 INSERT INTO posts(community_id, title, description, resource_url, username, vote_id)
 VALUES(
-    (SELECT community_id FROM community WHERE name='algebra'),
+    (SELECT community_id FROM community WHERE community_name='algebra'),
     'Algebra post 1',
     'Some quadratic formula',
     'http://fullerton.edu',
@@ -44,10 +44,10 @@ VALUES(
 );
 
 INSERT INTO votes(upvotes, downvotes) VALUES(99, 24);
-INSERT INTO community(community_id, name) VALUES(2, 'calculus');
+INSERT INTO community(community_id, community_name) VALUES(2, 'calculus');
 INSERT INTO posts(community_id, title, description, username, vote_id)
 VALUES(
-    (SELECT community_id FROM community WHERE name='calculus'),
+    (SELECT community_id FROM community WHERE community_name='calculus'),
     'Calculus post 1',
     'Steps to integrate',
     'math_guy_1',
@@ -57,7 +57,7 @@ VALUES(
 INSERT INTO votes(upvotes, downvotes) VALUES(98, 23);
 INSERT INTO posts(community_id, title, description, resource_url, username, vote_id)
 VALUES(
-    (SELECT community_id FROM community WHERE name='calculus'),
+    (SELECT community_id FROM community WHERE community_name='calculus'),
     'Calculus post 2',
     'Steps to differentiate',
     'https://www.google.com',
@@ -68,7 +68,7 @@ VALUES(
 INSERT INTO votes(upvotes, downvotes) VALUES(97, 22);
 INSERT INTO posts(community_id, title, description, username, vote_id)
 VALUES(
-    (SELECT community_id FROM community WHERE name='calculus'),
+    (SELECT community_id FROM community WHERE community_name='calculus'),
     'Calculus post 3',
     'Differentiation is rate of change',
     'math_guy_2',

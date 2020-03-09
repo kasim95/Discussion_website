@@ -10,7 +10,7 @@ foreman start -m all=3
 
 2) in separate terminal run
 ```
-caddy
+ulimit -n 8192 && caddy
 ```
 
 3) Then go to localhost:2015/posts or localhost:2015/votes

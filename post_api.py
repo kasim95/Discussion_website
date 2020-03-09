@@ -31,6 +31,7 @@ app.config.from_object(__name__)
 # community_id
 # title
 # description
+# resource_url
 # published
 # username
 # vote_id
@@ -92,7 +93,9 @@ def home():
 # 404 page
 @app.errorhandler(404)
 def page_not_found(status_code=404):
-    return "<h1>404 in flask</h1><p>Resource not found</p>", status_code
+    error_json = {"status_code": "404", "message": "Resource not found"}
+    #return "<h1>404 in flask</h1><p>Resource not found</p>", status_code
+    return jsonify(error_json), status_code
 
 
 # function to execute a single query at once
@@ -136,7 +139,7 @@ def transaction_db(query, args, return_=False):
     close_db()
     return True if not return_ else rv
 
-
+# test routes to check db
 # function to retrieve all posts without any filters
 @app.route('/api/posts/all', methods=['GET'])
 def get_posts_all():
@@ -145,11 +148,33 @@ def get_posts_all():
     return jsonify(all_posts), 200
 
 
+# function to retrieve all posts without any filters
+@app.route('/api/posts/allvotes', methods=['GET'])
+def get_votes_all():
+    query = 'SELECT * FROM votes'
+    all_votes = query_db(query)
+    return jsonify(all_votes), 200
+
+
+# function to retrieve all posts without any filters
+@app.route('/api/posts/allcommunity', methods=['GET'])
+def get_community_all():
+    query = 'SELECT * FROM community'
+    all_community = query_db(query)
+    return jsonify(all_community), 200
+
+
+@app.route('/api/posts/404', methods=['GET'])
+def get_error_page():
+    return page_not_found(404)
+#
+
+
 # function to retrieve posts with filters
 @app.route('/api/posts/filter', methods=['GET'])
 def get_posts_filter():
     params = request.args
-    query = 'SELECT * FROM posts ' \
+    query = 'SELECT post_id, title, published, username, community_name FROM posts ' \
              'INNER JOIN community ON posts.community_id=community.community_id ' \
              'INNER JOIN votes ON posts.vote_id=votes.vote_id WHERE'
     args = []
@@ -176,7 +201,7 @@ def get_posts_filter():
 
     community_name = params.get('community_name')
     if community_name:
-        query += ' name=? AND'
+        query += ' community_name=? AND'
         args.append(community_name)
 
     query = query[:-4]
@@ -190,12 +215,12 @@ def get_posts_filter():
 # function to add a new post to db
 @app.route('/api/posts/create', methods=['POST'])
 def create_post():
-    params = request.get_json(force=True)
+    params = request.get_json()
 
     query1 = 'INSERT INTO votes (upvotes, downvotes) VALUES (?, ?)'
     args1 = (0, 0)
 
-    query_community = 'SELECT community_id FROM community WHERE name=?'
+    query_community = 'SELECT community_id FROM community WHERE community_name=?'
     args_community = (params['community_name'],)
     community_id = query_db(query_community, args_community, one=True, commit=False)
     print(community_id)
@@ -209,10 +234,10 @@ def create_post():
         args3 = (id_, params['title'], params['description'], params['username'])
         q = transaction_db([query1, query3], [args1, args3])
     else:
-        query2 = 'INSERT INTO community (name) VALUES (?)'
+        query2 = 'INSERT INTO community (community_name) VALUES (?)'
         args2 = (params['community_name'],)
         query3 = 'INSERT INTO posts (community_id, title, description, username, vote_id) ' \
-                 'VALUES ((SELECT community_id FROM community WHERE name=?),?,?,?,(SELECT MAX(vote_id) FROM votes))'
+                 'VALUES ((SELECT community_id FROM community WHERE community_name=?),?,?,?,(SELECT MAX(vote_id) FROM votes))'
         args3 = (params['community_name'], params['title'], params['description'], params['username'])
         q = transaction_db([query1, query2, query3], [args1, args2, args3])
     if not q:
