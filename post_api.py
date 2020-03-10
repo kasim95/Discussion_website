@@ -4,10 +4,7 @@ import sqlite3
 
 ######################
 # Tasks
-# todo: add error handling for create post (if post already exists)
-# done: add error handling for delete post (if post does not exist)
-# done: add resource_url to posts table in db
-# done: add filter function for post retrieval
+# todo: add error handling for create post (if post already exists) (What is the criteria to check existing post?)
 
 ######################
 # Reference: https://alvinalexander.com/android/sqlite-autoincrement-insert-value-primary-key
@@ -86,15 +83,18 @@ def close_db(e=None):
 # home page
 @app.route('/', methods=['GET'])
 def home():
-    return "<h1>Welcome to CSUF Discussions</h1>" \
-           "<p>This site is under development</p>"
+    return "<h1>Welcome to CSUF Discussions API</h1>" \
+           "<p>Use /posts for posts api and /votes for votes api</p>"
+
+
+def get_response(status_code, message):
+    return {"status_code": str(status_code), "message": str(message)}
 
 
 # 404 page
 @app.errorhandler(404)
 def page_not_found(status_code=404):
-    error_json = {"status_code": "404", "message": "Resource not found"}
-    #return "<h1>404 in flask</h1><p>Resource not found</p>", status_code
+    error_json = get_response(status_code=status_code, message="Resource not found")
     return jsonify(error_json), status_code
 
 
@@ -118,6 +118,7 @@ def query_db(query, args=(), one=False, commit=False):
 
 # function to execute multiple queries at once
 def transaction_db(query, args, return_=False):
+    # return_=True if the transaction has a query that returns a result
     conn = get_db()
     if len(query) != len(args):
         raise ValueError('arguments dont match queries')
@@ -127,50 +128,16 @@ def transaction_db(query, args, return_=False):
         for i in range(len(query)):
             rv.append(conn.execute(query[i], args[i]).fetchall())
         conn.commit()
-    except sqlite3.OperationalError as e:
+    except (sqlite3.OperationalError, sqlite3.ProgrammingError) as e:
         conn.execute('rollback')
         print('Transaction failed. Rolled back')
         print(e)
         return False
-    except:
-        conn.execute('rollback')
-        print('Transaction failed with unknown error. Rolled back')
-        return False
     close_db()
     return True if not return_ else rv
 
-# test routes to check db
-# function to retrieve all posts without any filters
-@app.route('/api/posts/all', methods=['GET'])
-def get_posts_all():
-    query = 'SELECT * FROM posts'
-    all_posts = query_db(query)
-    return jsonify(all_posts), 200
 
-
-# function to retrieve all posts without any filters
-@app.route('/api/posts/allvotes', methods=['GET'])
-def get_votes_all():
-    query = 'SELECT * FROM votes'
-    all_votes = query_db(query)
-    return jsonify(all_votes), 200
-
-
-# function to retrieve all posts without any filters
-@app.route('/api/posts/allcommunity', methods=['GET'])
-def get_community_all():
-    query = 'SELECT * FROM community'
-    all_community = query_db(query)
-    return jsonify(all_community), 200
-
-
-@app.route('/api/posts/404', methods=['GET'])
-def get_error_page():
-    return page_not_found(404)
-#
-
-
-# function to retrieve posts with filters
+# function to retrieve posts with filters for a number of posts n (default value of n is 100)
 @app.route('/api/posts/filter', methods=['GET'])
 def get_posts_filter():
     params = request.args
@@ -180,31 +147,48 @@ def get_posts_filter():
     args = []
 
     post_id = params.get('post_id')
+    filters = 0
     if post_id:
         query += ' post_id=? AND'
         args.append(post_id)
+        filters += 1
 
     username = params.get('username')
     if username:
         query += ' username=? AND'
         args.append(username)
+        filters += 1
 
     published = params.get('published')
     if published:
         query += ' published=? AND'
         args.append(published)
+        filters += 1
 
     title = params.get('title')
     if title:
         query += ' title=? AND'
         args.append(title)
+        filters += 1
 
     community_name = params.get('community_name')
     if community_name:
         query += ' community_name=? AND'
         args.append(community_name)
+        filters += 1
 
-    query = query[:-4]
+    if filters > 0:
+        query = query[:-4]
+    else:
+        query = query[:-6]
+
+    number = params.get('n')
+    if not number:
+        number = 100
+    query += ' ORDER BY published DESC LIMIT ?'
+    args.append(number)
+
+    print(query)
     q = query_db(query, tuple(args))
 
     if q:
@@ -242,7 +226,7 @@ def create_post():
         q = transaction_db([query1, query2, query3], [args1, args2, args3])
     if not q:
         return page_not_found(404)
-    return "<h1>Post created</h1>", 201
+    return jsonify(get_response(status_code=201, message="Post created")), 201
 
 
 # function to delete an existing post from db
@@ -258,7 +242,7 @@ def delete_post():
     args1 = (post_id,)
 
     if not query_db(query1, args1):
-        return "<h1>Post does not exist</h1>", 409
+        return jsonify(get_response(status_code=409, message="Post does not exist")), 409
 
     query2 = 'DELETE FROM votes WHERE vote_id=(SELECT vote_id FROM posts WHERE post_id=?)'
     args2 = (post_id,)
@@ -269,7 +253,7 @@ def delete_post():
     q = transaction_db([query2, query3], [args2, args3])
     if not q:
         return page_not_found(404)
-    return "<h1>Post Deleted</h1>", 200
+    return jsonify(get_response(status_code=200, message="Post deleted")), 200
 
 
 def main():

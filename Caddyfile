@@ -1,6 +1,6 @@
 localhost:2015/posts {
 root {%SITE_ROOT%}
-proxy / http://127.0.0.1:5000 http://127.0.0.1:5001 http://127.0.0.1:5002
+proxy / http://127.0.0.1:5200 http://127.0.0.1:5201 http://127.0.0.1:5202
 log stdout
 }
 localhost:2015/votes {
