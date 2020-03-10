@@ -1,7 +1,10 @@
 
-# CPSC 449 Web back-end
+# CPSC 449 Web Backend Engineering
 ## Project-1
-
+### Project Members:
+* Raj Chhatbar () | Role: Ops
+* Mohammed Kasim Panjri (kasimp@csu.fullerton.edu) | Role: Dev 1 Posts API
+* Harlik Shah () | Role: Dev 2 Votes API
 
 1) use this code for generating 3 instance of foreman
 ```
