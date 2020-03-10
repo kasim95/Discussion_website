@@ -265,7 +265,6 @@ def create_post():
     query_community = 'SELECT community_id FROM community WHERE community_name=?'
     args_community = (community_name,)
     community_id = query_db(query_community, args_community, one=True, commit=False)
-    print(community_id)
     query4 = 'SELECT last_insert_rowid();'
     args4 = ()
     if community_id is not None:
