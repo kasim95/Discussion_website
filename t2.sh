@@ -1,1 +1,0 @@
-curl -i -X POST -H 'Content-Type:application/json' -d '{"title":"Timepass", "description":"another_test_post", "username":"some_guy", "community_name":"no_comm"}' 'http://127.0.0.1:5000/api/posts/create';echo "test finished"
