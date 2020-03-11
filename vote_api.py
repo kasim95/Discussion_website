@@ -102,14 +102,16 @@ def page_not_found(error):
 
 
 # function to retrieve all votes without any filters
-@app.route('/api/votes/all', methods=['GET'])
+#curl 'http://127.0.0.1:5000/all;
+@app.route('/all', methods=['GET'])
 def get_posts_all():
     query = 'SELECT * FROM votes'
-    all_votes = query_db(query)
+    all_votes = query_db(query,commit=False)
     return jsonify(all_votes), 200
 
 # Upvote a post
-@app.route('/api/votes/upvotes',methods=['GET'])
+#curl 'http://127.0.0.1:5000/upvotes?vote_id=2';
+@app.route('/upvotes',methods=['GET'])
 def get_upvotes():
 	params = request.args
 	vote_id = params.get('vote_id')
@@ -119,7 +121,8 @@ def get_upvotes():
 	return jsonify(update_upvotes),200
 
 #Downvote a post
-@app.route('/api/votes/downvotes',methods=['GET'])
+#curl 'http://127.0.0.1:5000/downvotes?vote_id=1';
+@app.route('/downvotes',methods=['GET'])
 def get_downvotes():
 	params = request.args
 	vote_id = params.get('vote_id')
@@ -129,17 +132,19 @@ def get_downvotes():
 	return jsonify(update_downvotes),200
 
 #Report the number of upvotes and downvotes for a post
-@app.route('/api/votes/get',methods=['GET'])
+#curl -i 'http://127.0.0.1:5000/get?vote_id=2';
+@app.route('/get',methods=['GET'])
 def get_retrievevotes():
 	params = request.args
 	vote_id = params.get('vote_id')
 	query = 'SELECT upvotes,downvotes FROM votes INNER JOIN posts ON posts.vote_id = votes.vote_id WHERE post_id = ?'
 	args = (vote_id,)
-	update_get = query_db(query,args,one=True)
+	update_get = query_db(query,args,commit=False)
 	return jsonify(update_get),200
 
 #List the n top-scoring posts to any community
-@app.route('/api/votes/getTop',methods=['GET'])
+#curl 'http://127.0.0.1:5000/getTop?n=3';
+@app.route('/getTop',methods=['GET'])
 def get_topvotes():
 	params = request.args
 	n = params.get('n')
@@ -147,11 +152,12 @@ def get_topvotes():
 	#query = 'SELECT abs(upvotes-downvotes) as Scores FROM votes ORDER BY Scores DESC LIMIT ?'
 	#query = 'SELECT * FROM votes WHERE vote_id=?'
 	args = (n,)
-	update_getTop = query_db(query,args,one=True)
+	update_getTop = query_db(query,args,commit=False)
 	return jsonify(update_getTop),200
 
 #Given a list of post identifiers, return the list sorted by score.
-@app.route('/api/votes/getList',methods=['GET'])
+#curl 'http://127.0.0.1:5000/getList?post_ids=1,2,3';
+@app.route('/getList',methods=['GET'])
 def get_topList():
 	params = request.args
 	post_ids = params.get('post_ids')
