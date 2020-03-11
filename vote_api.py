@@ -68,6 +68,12 @@ def make_dicts(cursor, row):
 	return dict((cursor.description[idx][0], value) for idx, value in enumerate(row))
 
 
+# helper function to generate a response with status code and message
+def get_response(status_code, message):
+    return {"status_code": str(status_code), "message": str(message)}
+
+
+
 def get_db():
 	if 'db' not in g:
 		g.db = sqlite3.connect(
@@ -125,13 +131,17 @@ def close_db(e=None):
 		db.close()
 
 
+# home page
 @app.route('/', methods=['GET'])
 def home():
-	return "<h1>Welcome to CSUF Discussions</h1><p>This site is under development</p>"
+    return "<h1>Welcome to CSUF Discussions API</h1>" \
+           "<p>Use /votes for votes api</p>"
+
 
 @app.errorhandler(404)
-def page_not_found(error):
-	return "<h1>404</h1><p>Resource not found</p>", 404
+def page_not_found(status_code=404):
+    error_json = get_response(status_code=status_code, message="Resource not found")
+    return jsonify(error_json), status_code
 
 
 # function to retrieve all votes without any filters
@@ -143,26 +153,38 @@ def get_posts_all():
     return jsonify(all_votes), 200
 
 # Upvote a post
-#curl 'http://127.0.0.1:5000/upvotes?vote_id=2';
-@app.route('/upvotes',methods=['GET'])
+#curl -i -X POST -H "Content-Type: application/json" -d '{"vote_id":"2"}' 'http://127.0.0.1:5000/upvotes'
+@app.route('/upvotes',methods=['POST'])
 def get_upvotes():
-	params = request.args
+	params = request.get_json()
+	#params = request.args
 	vote_id = params.get('vote_id')
+	if not vote_id:
+		return page_not_found(404)
 	query = 'UPDATE votes SET upvotes=upvotes + 1 WHERE vote_id IN (SELECT vote_id FROM posts WHERE post_id = ?)'
 	args = (vote_id,)
 	update_upvotes = query_db(query,args,one=True)
-	return jsonify(update_upvotes),200
+	if update_upvotes:
+		#return jsonify(get_response(status_code=201, message=))
+		return jsonify(update_upvotes),200
+	return page_not_found(404)
 
 #Downvote a post
-#curl 'http://127.0.0.1:5000/downvotes?vote_id=1';
-@app.route('/downvotes',methods=['GET'])
+#curl -i -X POST -H "Content-Type: application/json" -d '{"vote_id":"2"}' 'http://127.0.0.1:5000/downvotes'
+@app.route('/downvotes',methods=['POST'])
 def get_downvotes():
-	params = request.args
+	params=request.get_json()
+
+	#params = request.args
 	vote_id = params.get('vote_id')
+	if not vote_id:
+		return page_not_found(404)
 	query = 'UPDATE votes SET downvotes=downvotes+1 WHERE vote_id IN (SELECT vote_id FROM posts WHERE post_id = ?)'
 	args = (vote_id,)
 	update_downvotes = query_db(query,args,one=True)
-	return jsonify(update_downvotes),200
+	if update_downvotes:
+		return jsonify(update_downvotes),200
+	return page_not_found(404)
 
 #Report the number of upvotes and downvotes for a post
 #curl -i 'http://127.0.0.1:5000/get?vote_id=2';
@@ -170,10 +192,14 @@ def get_downvotes():
 def get_retrievevotes():
 	params = request.args
 	vote_id = params.get('vote_id')
+	if not vote_id:
+		return page_not_found(404)
 	query = 'SELECT upvotes,downvotes FROM votes INNER JOIN posts ON posts.vote_id = votes.vote_id WHERE post_id = ?'
 	args = (vote_id,)
 	update_get = query_db(query,args,commit=False)
-	return jsonify(update_get),200
+	if update_get:
+		return jsonify(update_get),200
+	return page_not_found(404)
 
 #List the n top-scoring posts to any community
 #curl 'http://127.0.0.1:5000/getTop?n=3';
@@ -181,29 +207,35 @@ def get_retrievevotes():
 def get_topvotes():
 	params = request.args
 	n = params.get('n')
+	if not n:
+		return page_not_found(404)
 	query = 'SELECT posts.post_id FROM posts INNER JOIN votes on posts.vote_id = votes.vote_id ORDER BY abs(upvotes-downvotes) DESC LIMIT ?'
-	#query = 'SELECT abs(upvotes-downvotes) as Scores FROM votes ORDER BY Scores DESC LIMIT ?'
-	#query = 'SELECT * FROM votes WHERE vote_id=?'
 	args = (n,)
 	update_getTop = query_db(query,args,commit=False)
-	return jsonify(update_getTop),200
+	if update_getTop:
+		return jsonify(update_getTop),200
+	return page_not_found(404)
 
 #Given a list of post identifiers, return the list sorted by score.
-#curl 'http://127.0.0.1:5000/getList?post_ids=1,2,3';
-@app.route('/getList',methods=['GET'])
+#curl -i -X POST -H "Content-Type: application/json" -d '{"post_ids":["1","2","3"]}' 'http://127.0.0.1:5000/getList'
+@app.route('/getList',methods=['POST'])
 def get_topList():
-	params = request.args
+	params=request.get_json()
+
 	post_ids = params.get('post_ids')
-	post_ids = post_ids.split(',')
+
+	if not post_ids:
+		return page_not_found(404)
 
 	post_ids = list(map(int,post_ids))
-
 	t= tuple(post_ids)
 	query = 'SELECT votes.vote_id,upvotes,downvotes FROM posts inner join votes on posts.vote_id = votes.vote_id WHERE posts.post_id IN {} ORDER BY (upvotes-downvotes) DESC'.format(t)
-
+	#print(query)
 	args = (post_ids,)
 	update_getList = query_db(query,commit=False)
-	return jsonify(update_getList),200
+	if update_getList:
+		return jsonify(update_getList),200
+	return page_not_found(404)
 
 
 def main():
