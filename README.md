@@ -24,25 +24,35 @@ http://localhost:2015/posts/filter
 
 #### ---------------------------------- Post API-------------------------------------------
 1. Create a new post: Send a POST request to route of create_post() fn
-> Example request:
-> 	`curl -i -X POST -H 'Content-Type:application/json' -d '{"title":"Test post", "description":"This is a test post", "username":"some_guy_or_gal", "community_name":"449"}' http://localhost:2015/posts/create;`
+> 
+```
+Example request:
+curl -i -X POST -H 'Content-Type:application/json' -d '{"title":"Test post", "description":"This is a test post", "username":"some_guy_or_gal", "community_name":"449"}' http://localhost:2015/posts/create;
+```
 
 2. Delete an existing post: Send a GET request to route of delete_post() fn
-> Example request:
-> 	`curl -i -X DELETE http://localhost:2015/posts/delete?post_id=4;`
+```
+Example request:
+curl -i -X DELETE http://localhost:2015/posts/delete?post_id=4;
+```
 
 3. Retrieve an existing post: Send a GET request to route of get_post() fn
-> Example request:
-> 	`curl -i http://localhost:2015/posts/get?post_id=2;`
+```
+Example request:
+curl -i http://localhost:2015/posts/get?post_id=2;
+```
 
 4. List the n most recent posts to a particular community: Send a GET request to route of get_posts_filter() fn with args (community_name and n)
-> Example request:
-> 	`curl -i http://localhost:2015/posts/filter?n=2&community_name=calculus;`
+```
+Example request:
+curl -i http://localhost:2015/posts/filter?n=2&community_name=calculus;
+```
 
 5. List the n most recent posts to any community: Send a GET request to route of get_posts_filter() fn with args (n)
-> Example request:
->	`curl -i http://localhost:2015/posts/filter?n=2`
-
+```
+Example request:
+curl -i http://localhost:2015/posts/filter?n=2;
+```
 
 #### ---------------------------------- Vote API-------------------------------------------
 
