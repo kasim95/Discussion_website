@@ -1,6 +1,39 @@
 import flask
 from flask import request, jsonify, g, current_app
 import sqlite3
+
+######################
+# API USAGE
+# Caddy Web server route for this API: localhost:$PORT/votes/
+# Caddy Web server PORT is set to 2015
+# --------------------
+# Upvote a post:
+# Example request:
+#   curl -i 'http://localhost:2015/votes/upvotes?vote_id=2';
+#
+# --------------------
+# Downvote a post:
+# Example request:
+# 	curl -i 'http://localhost:2015/votes/downvotes?vote_id=1';
+# --------------------
+# Report the number of upvotes and downvotes for a post:
+# Example request:
+#   curl -i 'http://localhost:2015/votes/get?vote_id=2';
+# --------------------
+# List the n top-scoring posts to any community:
+# Example request:
+# 	curl -i 'http://localhost:2015/votes/getTop?n=3';
+# --------------------
+# Given a list of post identifiers, return the list sorted by score.:
+# Example request:
+#	curl 'http://localhost:2015/votes/getList?post_ids=1,2,3';
+
+######################
+# References Used:
+# https://stackoverflow.com/questions/2602043/rest-api-best-practice-how-to-accept-list-of-parameter-values-as-input
+
+######################
+
 #config
 DATABASE = 'data.db'
 DEBUG = True
