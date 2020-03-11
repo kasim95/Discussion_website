@@ -7,7 +7,7 @@
 * Harlik Shah (shahharlik@csu.fullerton.edu) | Role: Dev 2 Votes API
 
 
---------------------------- Dev Ops---------------------------------------
+#### --------------------------- Dev Ops---------------------------------------
 1) Use this code for generating 3 instance of foreman in a terminal
 ```
 foreman start -m post=3,vote=3
