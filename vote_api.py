@@ -1,6 +1,39 @@
 import flask
 from flask import request, jsonify, g, current_app
 import sqlite3
+
+######################
+# API USAGE
+# Caddy Web server route for this API: localhost:$PORT/votes/
+# Caddy Web server PORT is set to 2015
+# --------------------
+# Upvote a post:
+# Example request:
+#   curl -i 'http://localhost:2015/votes/upvotes?vote_id=2';
+#
+# --------------------
+# Downvote a post:
+# Example request:
+# 	curl -i 'http://localhost:2015/votes/downvotes?vote_id=1';
+# --------------------
+# Report the number of upvotes and downvotes for a post:
+# Example request:
+#   curl -i 'http://localhost:2015/votes/get?vote_id=2';
+# --------------------
+# List the n top-scoring posts to any community:
+# Example request:
+# 	curl -i 'http://localhost:2015/votes/getTop?n=3';
+# --------------------
+# Given a list of post identifiers, return the list sorted by score.:
+# Example request:
+#	curl 'http://localhost:2015/votes/getList?post_ids=1,2,3';
+
+######################
+# References Used:
+# https://stackoverflow.com/questions/2602043/rest-api-best-practice-how-to-accept-list-of-parameter-values-as-input
+
+######################
+
 #config
 DATABASE = 'data.db'
 DEBUG = True
@@ -45,24 +78,21 @@ def get_db():
 	return g.db
 
 
-
-def query_db(query, args=(), one=False, commit=False):
-	# one=True means return single record
-	# commit = True for post and delete query
-	cur = get_db()
-	try:
-		if commit:
-			rv = cur.execute(query, args)
-			cur.commit()
-		else:
-			rv = cur.execute(query, args).fetchall()
-	except sqlite3.OperationalError as e:
-		print(e)
-	close_db()
-	if not commit:
-		return (rv[0] if rv else None) if one else rv
-	else:
-		return 200
+def query_db(query, args=(), one=False, commit=True):
+    # one=True means return single record
+    # commit = True for post and delete query
+    conn = get_db()
+    try:
+        rv = conn.execute(query, args).fetchall()
+        if commit:
+            conn.commit()
+    except sqlite3.OperationalError as e:
+        print(e)
+        return page_not_found(404)
+    close_db()
+    if not commit:
+        return (rv[0] if rv else None) if one else rv
+    return True
 
 def transaction_db(query, args):
 	cur = get_db()
@@ -103,17 +133,77 @@ def home():
 def page_not_found(error):
 	return "<h1>404</h1><p>Resource not found</p>", 404
 
-@app.route('/api/votes/upvote',methods=['GET'])
-def submit_upvote():
-    params = request.args
-    post_id = params.get('post_id')
-    if not post_id:
-        return page_not_found(404)
-    query1= 'UPDATE votes SET upvotes=upvotes+1 WHERE vote_id=?'
-    args1=(post_id)
-    query_db(query, args, one=True, commit=True)
-    return render_template('submit_vote.html',post_id),200
 
+# function to retrieve all votes without any filters
+#curl 'http://127.0.0.1:5000/all;
+@app.route('/all', methods=['GET'])
+def get_posts_all():
+    query = 'SELECT * FROM votes'
+    all_votes = query_db(query,commit=False)
+    return jsonify(all_votes), 200
+
+# Upvote a post
+#curl 'http://127.0.0.1:5000/upvotes?vote_id=2';
+@app.route('/upvotes',methods=['GET'])
+def get_upvotes():
+	params = request.args
+	vote_id = params.get('vote_id')
+	query = 'UPDATE votes SET upvotes=upvotes + 1 WHERE vote_id IN (SELECT vote_id FROM posts WHERE post_id = ?)'
+	args = (vote_id,)
+	update_upvotes = query_db(query,args,one=True)
+	return jsonify(update_upvotes),200
+
+#Downvote a post
+#curl 'http://127.0.0.1:5000/downvotes?vote_id=1';
+@app.route('/downvotes',methods=['GET'])
+def get_downvotes():
+	params = request.args
+	vote_id = params.get('vote_id')
+	query = 'UPDATE votes SET downvotes=downvotes+1 WHERE vote_id IN (SELECT vote_id FROM posts WHERE post_id = ?)'
+	args = (vote_id,)
+	update_downvotes = query_db(query,args,one=True)
+	return jsonify(update_downvotes),200
+
+#Report the number of upvotes and downvotes for a post
+#curl -i 'http://127.0.0.1:5000/get?vote_id=2';
+@app.route('/get',methods=['GET'])
+def get_retrievevotes():
+	params = request.args
+	vote_id = params.get('vote_id')
+	query = 'SELECT upvotes,downvotes FROM votes INNER JOIN posts ON posts.vote_id = votes.vote_id WHERE post_id = ?'
+	args = (vote_id,)
+	update_get = query_db(query,args,commit=False)
+	return jsonify(update_get),200
+
+#List the n top-scoring posts to any community
+#curl 'http://127.0.0.1:5000/getTop?n=3';
+@app.route('/getTop',methods=['GET'])
+def get_topvotes():
+	params = request.args
+	n = params.get('n')
+	query = 'SELECT posts.post_id FROM posts INNER JOIN votes on posts.vote_id = votes.vote_id ORDER BY abs(upvotes-downvotes) DESC LIMIT ?'
+	#query = 'SELECT abs(upvotes-downvotes) as Scores FROM votes ORDER BY Scores DESC LIMIT ?'
+	#query = 'SELECT * FROM votes WHERE vote_id=?'
+	args = (n,)
+	update_getTop = query_db(query,args,commit=False)
+	return jsonify(update_getTop),200
+
+#Given a list of post identifiers, return the list sorted by score.
+#curl 'http://127.0.0.1:5000/getList?post_ids=1,2,3';
+@app.route('/getList',methods=['GET'])
+def get_topList():
+	params = request.args
+	post_ids = params.get('post_ids')
+	post_ids = post_ids.split(',')
+
+	post_ids = list(map(int,post_ids))
+
+	t= tuple(post_ids)
+	query = 'SELECT votes.vote_id,upvotes,downvotes FROM posts inner join votes on posts.vote_id = votes.vote_id WHERE posts.post_id IN {} ORDER BY (upvotes-downvotes) DESC'.format(t)
+
+	args = (post_ids,)
+	update_getList = query_db(query,commit=False)
+	return jsonify(update_getList),200
 
 
 def main():
