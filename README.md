@@ -7,7 +7,7 @@
 * Harlik Shah (shahharlik@csu.fullerton.edu) | Role: Dev 2 Votes API
 
 
-#### --------------------------- Dev Ops---------------------------------------
+#### ---------------------------------- Dev Ops-------------------------------------------
 1) Use this code for generating 3 instance of foreman in a terminal
 ```
 foreman start -m post=3,vote=3
@@ -22,10 +22,9 @@ ulimit -n 8192 && caddy
 ex: to get all post in Database run
 http://localhost:2015/posts/filter
 
------------------------------ Post API --------------------------------------
+#### ---------------------------------- Post API-------------------------------------------
 
-
------------------------------ Vote API --------------------------------------
+#### ---------------------------------- Vote API-------------------------------------------
 
 
 ## License
