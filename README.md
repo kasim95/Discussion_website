@@ -37,7 +37,7 @@ http://localhost:2015/posts/filter
 
 4. List the n most recent posts to a particular community: Send a GET request to route of get_posts_filter() fn with args (community_name and n)
 > Example request:
-> 	`curl -i http://localhost:2015/posts/filter?n=2&community_name=algebra;`
+> 	`curl -i http://localhost:2015/posts/filter?n=2&community_name=calculus;`
 
 5. List the n most recent posts to any community: Send a GET request to route of get_posts_filter() fn with args (n)
 > Example request:
