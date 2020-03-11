@@ -11,11 +11,11 @@ import sqlite3
 # Example request:
 #   curl -i -X POST -H 'Content-Type:application/json' -d
 #   '{"title":"Test post", "description":"This is a test post", "username":"some_guy_or_gal", "community_name":"449"}'
-#   'http://localhost:2015/posts/create';
+#   http://localhost:2015/posts/create;
 # --------------------
 # Delete an existing post: Send a GET request to route of delete_post() fn
 # Example request:
-# curl -i 'http://localhost:2015/posts/delete?post_id=4';
+# curl -i -X DELETE http://localhost:2015/posts/delete?post_id=4;
 # --------------------
 # Retrieve an existing post: Send a GET request to route of get_post() fn
 # Example request:
@@ -24,16 +24,12 @@ import sqlite3
 # List the n most recent posts to a particular community:
 #   Send a GET request to route of get_posts_filter() fn with args (community_name and n)
 # Example request:
-# curl -i 'http://localhost:2015/posts/filter?n=2&community_name=algebra'
+# curl -i http://localhost:2015/posts/filter?n=2&community_name=algebra;
 # --------------------
 # List the n most recent posts to any community:
 #   Send a GET request to route of get_posts_filter() fn with args (n)
 # Example request:
-# curl -i 'http://localhost:2015/posts/filter?n=2'
-
-######################
-# Tasks
-# todo: add error handling for create post (if post already exists) (What is the criteria to check existing post?)
+# curl -i http://localhost:2015/posts/filter?n=2
 
 ######################
 # References Used:
@@ -75,9 +71,9 @@ app.config.from_object(__name__)
 # table3: community
 # community_id
 # name
+
+
 ######################
-
-
 # helper function used to convert each query result row into dictionary
 def make_dicts(cursor, row):
     return dict((cursor.description[idx][0], value) for idx, value in enumerate(row))
@@ -124,8 +120,7 @@ def close_db(e=None):
 # home page
 @app.route('/', methods=['GET'])
 def home():
-    return "<h1>Welcome to CSUF Discussions API</h1>" \
-           "<p>Use /posts for posts api and /votes for votes api</p>"
+    return jsonify(get_response(status_code=200, message="Welcome to CSUF Discussions Post API."))
 
 
 # 404 page
@@ -195,8 +190,7 @@ def get_post():
 def get_posts_filter():
     params = request.args
     query = 'SELECT post_id, title, published, username, community_name FROM posts ' \
-             'INNER JOIN community ON posts.community_id=community.community_id ' \
-             'INNER JOIN votes ON posts.vote_id=votes.vote_id WHERE'
+             'INNER JOIN community ON posts.community_id=community.community_id WHERE'
     args = []
 
     post_id = params.get('post_id')
@@ -238,7 +232,8 @@ def get_posts_filter():
     number = params.get('n')
     if not number:
         number = 100
-    query += ' ORDER BY published DESC LIMIT ?'
+    count_query = 'SELECT COUNT(post_id) FROM '
+    query += ' ORDER BY published DESC LIMIT ?;'
     args.append(number)
 
     q = query_db(query, tuple(args))
@@ -282,7 +277,7 @@ def create_post():
         args2 = (community_name,)
         query3 = 'INSERT INTO posts (community_id, title, description, resource_url, username, vote_id) ' \
                  'VALUES ((SELECT community_id FROM community WHERE community_name=?),?,?,?,?,(SELECT MAX(vote_id) FROM votes))'
-        args3 = (community_name, title, description, username)
+        args3 = (community_name, title, description, resource_url, username)
         q = transaction_db(query=[query1, query2, query3, query4], args=[args1, args2, args3, args4], return_=True)
     if not q:
         return page_not_found(404)
@@ -295,7 +290,7 @@ def create_post():
 
 
 # function to delete an existing post from db
-@app.route('/delete', methods=['GET'])
+@app.route('/delete', methods=['DELETE'])
 def delete_post():
     params = request.args
 
